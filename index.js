@@ -21,6 +21,7 @@ async function connect() {
 
     // collections
     const servicesCollection = client.db('manufacturer').collection('services');
+    const newsletterCollection = client.db('manufacturer').collection('subscribers');
 
     //  post api 
     app.post('/api/services', async (req, res) => {
@@ -33,6 +34,15 @@ async function connect() {
     app.get('/api/services', async (req, res) => {
         const services = await servicesCollection.find({}).sort({ $natural: -1 }).toArray();
         res.send(services);
+    })
+
+    // newsletter post api
+    app.post('/api/newsletter/:email', async (req, res) => {
+        const email = req.params.email;
+        const filter = { email: email };
+        const options = { upsert: true };
+        const result = await newsletterCollection.findOneAndUpdate(filter, { $set: { email: email } }, options);
+        res.send(result);
     })
 
 
