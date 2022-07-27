@@ -1,6 +1,7 @@
 const express = require('express')
 const app = express()
 require('dotenv').config()
+const jwt = require('jsonwebtoken');
 
 const port = 5500 || process.env.PORT
 
@@ -10,8 +11,9 @@ const cors = require('cors')
 app.use(cors())
 
 
+
 // mongo client
-const { MongoClient, ServerApiVersion,ObjectId } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.zo2yn.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
@@ -23,6 +25,7 @@ async function connect() {
     const servicesCollection = client.db('manufacturer').collection('services');
     const newsletterCollection = client.db('manufacturer').collection('subscribers');
     const ordersCollection = client.db('manufacturer').collection('orders');
+    const usersCollection = client.db('manufacturer').collection('orders');
 
     //  post api 
     app.post('/api/services', async (req, res) => {
@@ -43,6 +46,19 @@ async function connect() {
         const service = await servicesCollection.findOne({ _id: ObjectId(id) });
         res.send(service);
     });
+    // get all orders
+    app.get('/api/orders', async (req, res) => {
+        const orders = await ordersCollection.find({}).toArray();
+        res.send(orders);
+    });
+
+    // orders get api with email
+    app.get('/api/orders/:email', async (req, res) => {
+        const email = req.params.email;
+        const filter = { email: email };
+        const orders = await ordersCollection.find(filter).toArray();
+        res.send(orders);
+    });
 
     // order post api
     app.post('/api/orders', async (req, res) => {
@@ -50,6 +66,22 @@ async function connect() {
         await ordersCollection.insertOne(order);
         res.send(order);
     });
+
+    // users put api
+  // user put api
+  app.put('/api/user/:email', async (req, res) => {
+    const email = req.params.email;
+    const user = req.body;
+    const filter = { email: email };
+    const options = { upsert: true };
+    const updateDoc = {
+      $set: user,
+    };
+    const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1d' });
+    const result = await usersCollection.updateOne(filter, updateDoc, options);
+    res.send({ result, token });
+    // res.send(result);
+  })
 
     // newsletter post api
     app.post('/api/newsletter/:email', async (req, res) => {
@@ -59,6 +91,8 @@ async function connect() {
         const result = await newsletterCollection.findOneAndUpdate(filter, { $set: { email: email } }, options);
         res.send(result);
     })
+
+
 
 
 
