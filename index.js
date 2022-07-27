@@ -11,7 +11,7 @@ app.use(cors())
 
 
 // mongo client
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion,ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.zo2yn.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
@@ -22,6 +22,7 @@ async function connect() {
     // collections
     const servicesCollection = client.db('manufacturer').collection('services');
     const newsletterCollection = client.db('manufacturer').collection('subscribers');
+    const ordersCollection = client.db('manufacturer').collection('orders');
 
     //  post api 
     app.post('/api/services', async (req, res) => {
@@ -35,6 +36,20 @@ async function connect() {
         const services = await servicesCollection.find({}).sort({ $natural: -1 }).toArray();
         res.send(services);
     })
+
+    // get specific services
+    app.get('/api/services/:id', async (req, res) => {
+        const id = req.params.id;
+        const service = await servicesCollection.findOne({ _id: ObjectId(id) });
+        res.send(service);
+    });
+
+    // order post api
+    app.post('/api/orders', async (req, res) => {
+        const order = req.body;
+        await ordersCollection.insertOne(order);
+        res.send(order);
+    });
 
     // newsletter post api
     app.post('/api/newsletter/:email', async (req, res) => {
