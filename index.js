@@ -42,7 +42,7 @@ async function connect() {
     const servicesCollection = client.db('manufacturer').collection('services');
     const newsletterCollection = client.db('manufacturer').collection('subscribers');
     const ordersCollection = client.db('manufacturer').collection('orders');
-    const usersCollection = client.db('manufacturer').collection('orders');
+    const usersCollection = client.db('manufacturer').collection('users');
 
     //  post api 
     app.post('/api/services', async (req, res) => {
@@ -58,7 +58,7 @@ async function connect() {
     })
 
     // get specific services
-    app.get('/api/services/:id', async (req, res) => {
+    app.get('/api/services/:id', verifyToken ,async (req, res) => {
         const id = req.params.id;
         const service = await servicesCollection.findOne({ _id: ObjectId(id) });
         res.send(service);
@@ -88,6 +88,7 @@ async function connect() {
   // user put api
   app.put('/api/user/:email', async (req, res) => {
     const email = req.params.email;
+    // console.log(email);
     const user = req.body;
     const filter = { email: email };
     const options = { upsert: true };
