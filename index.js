@@ -63,6 +63,23 @@ async function connect() {
         const service = await servicesCollection.findOne({ _id: ObjectId(id) });
         res.send(service);
     });
+
+    // services put api
+    app.put('/api/services/:id', verifyToken, async (req, res) => {
+        const id = req.params.id;
+        const service = req.body;
+        await servicesCollection.updateOne({ _id: ObjectId(id) }, { $set: service });
+        res.send(service);
+    });
+
+    // services insert api
+    app.post('/api/services/', verifyToken, async (req, res) => {
+        // const id = req.params.id;
+        const service = req.body;
+        const result = await servicesCollection.insertOne(service);
+        res.send(result);
+    });
+
     // get all orders
     app.get('/api/orders', async (req, res) => {
         const orders = await ordersCollection.find({}).toArray();
@@ -76,6 +93,14 @@ async function connect() {
         const orders = await ordersCollection.find(filter).toArray();
         res.send(orders);
     });
+
+    // orders delete api
+    app.delete('/api/orders/:id', verifyToken, async (req, res) => {
+        const id = req.params.id;
+        await ordersCollection.deleteOne({ _id: ObjectId(id) });
+        res.send({ success: true });
+    });
+
 
     // order post api
     app.post('/api/orders', async (req, res) => {
