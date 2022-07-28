@@ -44,12 +44,26 @@ async function connect() {
     const ordersCollection = client.db('manufacturer').collection('orders');
     const usersCollection = client.db('manufacturer').collection('users');
 
-    //  post api 
-    app.post('/api/services', async (req, res) => {
-        const service = req.body;
-        await servicesCollection.insertOne(service);
-        res.send(service);
-    });
+    // verify admin
+    const verifyAdmin = async (req, res, next) => {
+        const requester = req.decoded?.email;
+        const requesterAccount = await usersCollection.findOne({ email: requester });
+        // console.log(requesterAccount);
+        if (requesterAccount?.role === 'admin') {
+            next();
+        }
+        else {
+            return res.status(403).send({ success: false, message: 'Forbidden Access' });
+        }
+    }
+
+
+    // //  post api 
+    // app.post('/api/services', verifyToken, verifyAdmin, async (req, res) => {
+    //     const service = req.body;
+    //     await servicesCollection.insertOne(service);
+    //     res.send(service);
+    // });
 
     // get api
     app.get('/api/services', async (req, res) => {
@@ -73,15 +87,14 @@ async function connect() {
     });
 
     // services insert api
-    app.post('/api/services/', verifyToken, async (req, res) => {
-        // const id = req.params.id;
+    app.post('/api/services/', verifyToken, verifyAdmin, async (req, res) => {
         const service = req.body;
         const result = await servicesCollection.insertOne(service);
         res.send(result);
     });
 
     // get all orders
-    app.get('/api/orders', async (req, res) => {
+    app.get('/api/orders', verifyToken, async (req, res) => {
         const orders = await ordersCollection.find({}).toArray();
         res.send(orders);
     });
@@ -95,7 +108,7 @@ async function connect() {
     });
 
     // orders delete api
-    app.delete('/api/orders/:id', verifyToken, async (req, res) => {
+    app.delete('/api/orders/:id', verifyToken, verifyAdmin, async (req, res) => {
         const id = req.params.id;
         await ordersCollection.deleteOne({ _id: ObjectId(id) });
         res.send({ success: true });
@@ -103,7 +116,7 @@ async function connect() {
 
 
     // order post api
-    app.post('/api/orders', async (req, res) => {
+    app.post('/api/orders', verifyToken, async (req, res) => {
         const order = req.body;
         await ordersCollection.insertOne(order);
         res.send(order);
@@ -126,21 +139,43 @@ async function connect() {
     })
 
     //   users get api
-    app.get('/api/users', async (req, res) => {
+    app.get('/api/users', verifyToken, verifyAdmin, async (req, res) => {
         const users = await usersCollection.find({}).toArray();
         res.send(users);
     });
 
     // admin put api
-  app.put('/user/admin/:email', verifyToken,  async (req, res) => {
-    const email = req.params.email;
-    const requester = req.decoded.email;
-    const requesterAccount = await usersCollection.findOne({ email: requester });
-    const filter = { email: email };
-    const updateDoc = { $set: { role: 'admin' } };
-    const result = await usersCollection.updateOne(filter, updateDoc);
-    res.send(result);
-  })
+    app.put('/user/admin/:email', verifyToken, verifyAdmin, async (req, res) => {
+        const email = req.params.email;
+        const requester = req.decoded.email;
+        const requesterAccount = await usersCollection.findOne({ email: requester });
+        const filter = { email: email };
+        const updateDoc = { $set: { role: 'admin' } };
+        const result = await usersCollection.updateOne(filter, updateDoc);
+        res.send(result);
+    })
+
+    //   delete user api
+    app.delete('/api/user/:email', verifyToken, verifyAdmin, async (req, res) => {
+        const email = req.params.email;
+        const requester = req.decoded.email;
+        const requesterAccount = await usersCollection.findOne({ email: requester });
+        if (requesterAccount.role === 'admin') {
+            const result = await usersCollection.deleteOne({ email: email });
+            res.send(result);
+        } else {
+            res.send({ success: false, message: 'You are not authorized to delete this user' });
+        }
+    })
+
+    // admin get api
+    app.get('/admin/:email', async (req, res) => {
+        const email = req.params.email;
+        const user = await usersCollection.findOne({ email: email });
+        const isAdmin = user?.role === 'admin';
+        // console.log(isAdmin);
+        res.send({ admin: isAdmin })
+    })
 
 
     // newsletter post api
