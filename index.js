@@ -89,6 +89,13 @@ async function connect() {
         res.send(result);
     });
 
+    // services delete api
+    app.delete('/api/services/:id', verifyToken, verifyAdmin, async (req, res) => {
+        const id = req.params.id;
+        await servicesCollection.deleteOne({ _id: ObjectId(id) });
+        res.send({ success: true, message: 'Service deleted' });
+    });
+
     // get all orders
     app.get('/api/orders', async (req, res) => {
         const orders = await ordersCollection.find({}).sort({ $natural: -1 }).toArray();
