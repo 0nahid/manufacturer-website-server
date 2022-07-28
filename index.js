@@ -10,6 +10,9 @@ app.use(express.json())
 const cors = require('cors')
 app.use(cors())
 
+// stripe
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
 // verify jwt token
 function verifyToken(req, res, next) {
     const authorization = req.headers?.authorization;
@@ -43,6 +46,7 @@ async function connect() {
     const newsletterCollection = client.db('manufacturer').collection('subscribers');
     const ordersCollection = client.db('manufacturer').collection('orders');
     const usersCollection = client.db('manufacturer').collection('users');
+    const paymentDetailsCollection = client.db('manufacturer').collection('payments');
 
     // verify admin
     const verifyAdmin = async (req, res, next) => {
@@ -56,14 +60,6 @@ async function connect() {
             return res.status(403).send({ success: false, message: 'Forbidden Access' });
         }
     }
-
-
-    // //  post api 
-    // app.post('/api/services', verifyToken, verifyAdmin, async (req, res) => {
-    //     const service = req.body;
-    //     await servicesCollection.insertOne(service);
-    //     res.send(service);
-    // });
 
     // get api
     app.get('/api/services', async (req, res) => {
@@ -94,18 +90,34 @@ async function connect() {
     });
 
     // get all orders
-    app.get('/api/orders', verifyToken, async (req, res) => {
-        const orders = await ordersCollection.find({}).toArray();
+    app.get('/api/orders', async (req, res) => {
+        const orders = await ordersCollection.find({}).sort({ $natural: -1 }).toArray();
         res.send(orders);
     });
 
-    // orders get api with email
-    app.get('/api/orders/:email', async (req, res) => {
+    // specific order get api
+    app.get('/api/order/:id', verifyToken, async (req, res) => {
+        const id = req.params.id;
+        const order = await ordersCollection.findOne({ _id: ObjectId(id) });
+        res.send(order);
+    });
+
+    // patch order api
+    app.patch('/api/order/:id', verifyToken, async (req, res) => {
+        const id = req.params.id;
+        const payment = req.body;
+        const result = await ordersCollection.updateOne({ _id: ObjectId(id) }, { $set: { paid: true, transactionId: payment.transactionId } });
+        const paymentsCollection = await paymentDetailsCollection.insertOne(payment);
+        res.send(result);
+    })
+
+    // orders get api with email 
+    app.get('/api/orders/:email', verifyToken, async (req, res) => {
         const email = req.params.email;
-        const filter = { email: email };
-        const orders = await ordersCollection.find(filter).toArray();
+        const orders = await ordersCollection.find({ email: email }).sort({ $natural: -1 }).toArray();
         res.send(orders);
     });
+
 
     // orders delete api
     app.delete('/api/orders/:id', verifyToken, verifyAdmin, async (req, res) => {
@@ -121,6 +133,7 @@ async function connect() {
         await ordersCollection.insertOne(order);
         res.send(order);
     });
+
 
     // user put api
     app.put('/api/user/:email', async (req, res) => {
@@ -187,6 +200,18 @@ async function connect() {
         res.send(result);
     })
 
+    // create payment intent
+    app.post('/create-payment-intent', verifyToken, async (req, res) => {
+        const { price } = req.body;
+        const amount = price * 100;
+        // console.log(amount);
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount,
+            currency: 'usd',
+            payment_method_types: ['card']
+        });
+        res.send({ clientSecret: paymentIntent.client_secret })
+    });
 
 
 
