@@ -68,9 +68,24 @@ async function connect() {
     })
 
     // get specific services
-    app.get('/api/services/:id', verifyToken, async (req, res) => {
+    app.get('/api/service/:id', verifyToken, async (req, res) => {
         const id = req.params.id;
         const service = await servicesCollection.findOne({ _id: ObjectId(id) });
+        res.send(service);
+    });
+
+    // services insert api
+    app.post('/api/services/', verifyToken, verifyAdmin, async (req, res) => {
+        const service = req.body;
+        const result = await servicesCollection.insertOne(service);
+        res.send(result);
+    });
+
+    // services patch api 
+    app.patch('/api/service/:id', verifyToken, verifyAdmin, async (req, res) => {
+        const id = req.params.id;
+        const service = req.body;
+        await servicesCollection.updateOne({ _id: ObjectId(id) }, { $set: service });
         res.send(service);
     });
 
@@ -82,19 +97,13 @@ async function connect() {
         res.send(service);
     });
 
-    // services insert api
-    app.post('/api/services/', verifyToken, verifyAdmin, async (req, res) => {
-        const service = req.body;
-        const result = await servicesCollection.insertOne(service);
-        res.send(result);
-    });
-
     // services delete api
     app.delete('/api/services/:id', verifyToken, verifyAdmin, async (req, res) => {
         const id = req.params.id;
         await servicesCollection.deleteOne({ _id: ObjectId(id) });
         res.send({ success: true, message: 'Service deleted' });
     });
+
 
     // get all orders
     app.get('/api/orders', async (req, res) => {
