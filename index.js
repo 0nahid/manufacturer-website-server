@@ -47,6 +47,8 @@ async function connect() {
     const ordersCollection = client.db('manufacturer').collection('orders');
     const usersCollection = client.db('manufacturer').collection('users');
     const paymentDetailsCollection = client.db('manufacturer').collection('payments');
+    const blogsCollection = client.db('manufacturer').collection('blogs');
+    const reviewsCollection = client.db('manufacturer').collection('reviews');
 
     // verify admin
     const verifyAdmin = async (req, res, next) => {
@@ -106,7 +108,7 @@ async function connect() {
 
 
     // get all orders
-    app.get('/api/orders', async (req, res) => {
+    app.get('/api/orders', verifyToken, verifyAdmin, async (req, res) => {
         const orders = await ordersCollection.find({}).sort({ $natural: -1 }).toArray();
         res.send(orders);
     });
@@ -215,7 +217,18 @@ async function connect() {
         const result = await newsletterCollection.findOneAndUpdate(filter, { $set: { email: email } }, options);
         res.send(result);
     })
-
+    // blogs get api
+    app.get('/api/blogs', async (req, res) => {
+        const blogs = await blogsCollection.find({}).toArray();
+        res.send(blogs);
+    })
+    // specific blog get api
+    app.get('/api/blog/:id', async (req, res) => {
+        const id = req.params.id;
+        const blog = await blogsCollection.findOne({ _id: ObjectId(id) });
+        res.send(blog);
+    })
+    
     // create payment intent
     app.post('/create-payment-intent', verifyToken, async (req, res) => {
         const { price } = req.body;
