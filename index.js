@@ -219,7 +219,7 @@ async function connect() {
     })
     // blogs get api
     app.get('/api/blogs', async (req, res) => {
-        const blogs = await blogsCollection.find({}).toArray();
+        const blogs = await blogsCollection.find({}).sort({ $natural: -1 }).toArray();
         res.send(blogs);
     })
     // specific blog get api
@@ -228,7 +228,27 @@ async function connect() {
         const blog = await blogsCollection.findOne({ _id: ObjectId(id) });
         res.send(blog);
     })
-    
+
+    // review post api
+    app.post('/api/review/', async (req, res) => {
+        const review = req.body;
+        const result = await reviewsCollection.insertOne(review);
+        res.send(result);
+    })
+    // all reviews get api
+    app.get('/api/reviews', async (req, res) => {
+        const reviews = await reviewsCollection.find({}).sort({ $natural: -1 }).toArray();
+        res.send(reviews);
+    })
+
+
+    // reviews delete api
+    app.delete('/api/review/:id', verifyToken, verifyAdmin, async (req, res) => {
+        const id = req.params.id;
+        const result = await reviewsCollection.deleteOne({ _id: ObjectId(id) });
+        res.send(result);
+    })
+
     // create payment intent
     app.post('/create-payment-intent', verifyToken, async (req, res) => {
         const { price } = req.body;
