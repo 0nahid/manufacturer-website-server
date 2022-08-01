@@ -16,7 +16,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // verify jwt token
 function verifyToken(req, res, next) {
     const authorization = req.headers?.authorization;
-    // console.log(authorization);
+    // // console.log(authorization);
     if (!authorization) {
         return res.status(403).send({ success: false, message: 'Forbidden Access' });
     }
@@ -26,7 +26,7 @@ function verifyToken(req, res, next) {
             return res.status(401).send({ success: false, message: 'Unauthorized access' });
         }
         req.decoded = decoded;
-        // console.log(decoded);
+        // // console.log(decoded);
         next();
     });
 }
@@ -39,7 +39,7 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 // connect mongodb 
 async function connect() {
-    await client.connect() ? console.log('connected') : console.log('not connected');
+    await client.connect() ? // console.log('connected') : // console.log('not connected');
 
     // collections
     const servicesCollection = client.db('manufacturer').collection('services');
@@ -54,7 +54,7 @@ async function connect() {
     const verifyAdmin = async (req, res, next) => {
         const requester = req.decoded?.email;
         const requesterAccount = await usersCollection.findOne({ email: requester });
-        // console.log(requesterAccount);
+        // // console.log(requesterAccount);
         if (requesterAccount?.role === 'admin') {
             next();
         }
@@ -156,7 +156,7 @@ async function connect() {
     // user put api
     app.put('/api/user/:email', async (req, res) => {
         const email = req.params.email;
-        // console.log(email);
+        // // console.log(email);
         const user = req.body;
         const filter = { email: email };
         const options = { upsert: true };
@@ -204,7 +204,7 @@ async function connect() {
         const email = req.params.email;
         const user = await usersCollection.findOne({ email: email });
         const isAdmin = user?.role === 'admin';
-        // console.log(isAdmin);
+        // // console.log(isAdmin);
         res.send({ admin: isAdmin })
     })
 
@@ -253,7 +253,7 @@ async function connect() {
     app.post('/create-payment-intent', verifyToken, async (req, res) => {
         const { price } = req.body;
         const amount = price * 100;
-        // console.log(amount);
+        // // console.log(amount);
         const paymentIntent = await stripe.paymentIntents.create({
             amount,
             currency: 'usd',
@@ -269,4 +269,4 @@ async function connect() {
 connect().catch(console.dir);
 
 app.get('/', (req, res) => res.send('Hello World!'))
-app.listen(port, () => console.log(`Example app listening on port ${port}!`))
+app.listen(port, () => // console.log(`Example app listening on port ${port}!`))
