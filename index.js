@@ -39,7 +39,7 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 // connect mongodb 
 async function connect() {
-    await client.connect() ? console.log('connected') :  console.log('not connected');
+    await client.connect() ? console.log('connected') : console.log('not connected');
 
     // collections
     const servicesCollection = client.db('manufacturer').collection('services');
@@ -174,6 +174,29 @@ async function connect() {
         const users = await usersCollection.find({}).toArray();
         res.send(users);
     });
+
+    app.get('/api/users/me',  async (req, res) => {
+        const email = req.query.email;
+        // console.log(email);
+        if (email) {
+            const user = await usersCollection.find({ email: email }).toArray();
+            res.send(user);
+        }
+    })
+
+    // users patch api
+    app.patch('/api/users/me', verifyToken, async (req, res) => {
+        const email = req.query.email;
+        const user = req.body;
+        const filter = { email: email };
+        // const options = { upsert: true };
+        const updateDoc = {
+            $set: user,
+        };
+        const result = await usersCollection.updateOne(filter, updateDoc);
+        res.send(result);
+    })
+
 
     // admin put api
     app.put('/user/admin/:email', verifyToken, verifyAdmin, async (req, res) => {
